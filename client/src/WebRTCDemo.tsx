@@ -18,6 +18,7 @@ function WebRTCDemo() {
     if (!isConnected) return;
 
     let isMounted = true;
+    const pendingCandidates: RTCIceCandidateInit[] = [];
 
     const pc = new RTCPeerConnection(config);
     pcRef.current = pc;
@@ -27,6 +28,7 @@ function WebRTCDemo() {
     };
 
     pc.onnegotiationneeded = async () => {
+      console.log("creating offer");
       try {
         await pc.setLocalDescription(await pc.createOffer());
         socket.emit("send-offer", pc.localDescription);
@@ -34,9 +36,19 @@ function WebRTCDemo() {
         console.error("Error during negotiation: " + err);
       }
     };
+    pc.oniceconnectionstatechange = () => {
+      console.log("ICE state:", pc.iceConnectionState);
+    };
+
+    pc.onconnectionstatechange = () => {
+      console.log("Connection state:", pc.connectionState);
+    };
 
     pc.ontrack = (evt) => {
-      if (remoteVideo.current) remoteVideo.current.srcObject = evt.streams[0];
+      console.log("Received track", evt);
+      if (remoteVideo.current) {
+        remoteVideo.current.srcObject = evt.streams[0];
+      }
     };
 
     async function start() {
@@ -57,16 +69,25 @@ function WebRTCDemo() {
 
     const handleReceiveIce = async (candidate: RTCIceCandidateInit) => {
       try {
-        if (pc.remoteDescription)
-          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        if (!pc.remoteDescription) {
+          pendingCandidates.push(candidate);
+          return;
+        }
+
+        await pc.addIceCandidate(candidate);
       } catch (err) {
         console.error("Error adding ICE candidate: " + err);
       }
     };
 
     const handleReceiveOffer = async (offer: RTCSessionDescriptionInit) => {
+      console.log("received offer");
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        for (const candidate of pendingCandidates) {
+          await pc.addIceCandidate(candidate);
+        }
+        pendingCandidates.length = 0;
         await pc.setLocalDescription(await pc.createAnswer());
         socket.emit("send-answer", pc.localDescription);
       } catch (err) {
@@ -74,9 +95,15 @@ function WebRTCDemo() {
       }
     };
 
-    const handleReceiveAnswer = (answer: RTCSessionDescriptionInit) => {
+    const handleReceiveAnswer = async (answer: RTCSessionDescriptionInit) => {
+      console.log("received answer");
       try {
-        pc.setRemoteDescription(new RTCSessionDescription(answer));
+        await pc.setRemoteDescription(new RTCSessionDescription(answer));
+        for (const candidate of pendingCandidates) {
+          await pc.addIceCandidate(candidate);
+        }
+
+        pendingCandidates.length = 0;
       } catch (err) {
         console.error("Error handling answer: " + err);
       }
