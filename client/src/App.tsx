@@ -1,29 +1,18 @@
-import { useEffect, useRef, useState } from "react";
-import { io, Socket } from "socket.io-client";
+import { useState } from "react";
+import AudioDemo from "./AudioDemo";
+import { useSocket } from "./socketContext";
 import WebRTCDemo from "./WebRTCDemo";
 
 function App() {
-  const socketRef = useRef<Socket>(null);
-  const [connected, setConnected] = useState(false);
   const [startVideo, setStartVideo] = useState(false);
-
-  useEffect(() => {
-    socketRef.current = io("ws://localhost:3000");
-    socketRef.current.on("connect", () => {
-      setConnected(true);
-    });
-    socketRef.current.on("disconnect", () => {
-      setConnected(false);
-    });
-
-    return () => {
-      socketRef.current?.disconnect();
-    };
-  }, []);
+  const [startAudio, setStartAudio] = useState(false);
+  const { isConnected } = useSocket();
 
   return (
     <div className="flex flex-col items-center">
-      <p className="text-center">{connected ? "Connected" : "Not Connected"}</p>
+      <p className="text-center">
+        {isConnected ? "Connected" : "Not Connected"}
+      </p>
       <button
         className="border p-2 rounded-md"
         onClick={() => setStartVideo(!startVideo)}
@@ -31,6 +20,14 @@ function App() {
         {startVideo ? "Stop Video" : "Start Video"}
       </button>
       {startVideo && <WebRTCDemo />}
+
+      <button
+        className="border p-2 rounded-md"
+        onClick={() => setStartAudio(!startAudio)}
+      >
+        {startAudio ? "Stop Audio" : "Start Audio"}
+      </button>
+      {startAudio && <AudioDemo />}
     </div>
   );
 }
