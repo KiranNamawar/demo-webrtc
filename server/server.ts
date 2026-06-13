@@ -14,6 +14,18 @@ const io = new Server(httpServer, {
 io.on("connection", (socket) => {
   console.log("user connected with socket id: " + socket.id);
 
+  socket.on("send-ice-candidate", (candidate) => {
+    socket.broadcast.emit("receive-ice-candidate", candidate);
+  });
+
+  socket.on("send-offer", (offer) => {
+    socket.broadcast.emit("receive-offer", offer);
+  });
+
+  socket.on("send-answer", (answer) => {
+    socket.broadcast.emit("receive-answer", answer);
+  });
+
   socket.on("disconnect", () => {
     console.log("user disconnected with socket id: " + socket.id);
   });
