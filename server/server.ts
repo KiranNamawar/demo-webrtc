@@ -12,25 +12,44 @@ const io = new Server(httpServer, {
 });
 
 io.on("connection", (socket) => {
-  console.log("user connected with socket id: " + socket.id);
+  socket.on("join-room", (roomId) => {
+    socket.join(roomId);
 
-  socket.on("send-ice-candidate", (candidate) => {
-    console.log("candidate");
-    socket.broadcast.emit("receive-ice-candidate", candidate);
+    const room = io.sockets.adapter.rooms.get(roomId);
+
+    const users = [...(room ?? [])];
+
+    socket.emit(
+      "existing-users",
+      users.filter((id) => id !== socket.id),
+    );
+
+    socket.to(roomId).emit("user-joined", socket.id);
   });
 
-  socket.on("send-offer", (offer) => {
-    console.log("offer");
-    socket.broadcast.emit("receive-offer", offer);
+  socket.on("offer", ({ target, offer }) => {
+    io.to(target).emit("offer", {
+      sender: socket.id,
+      offer,
+    });
   });
 
-  socket.on("send-answer", (answer) => {
-    console.log("answer");
-    socket.broadcast.emit("receive-answer", answer);
+  socket.on("answer", ({ target, answer }) => {
+    io.to(target).emit("answer", {
+      sender: socket.id,
+      answer,
+    });
+  });
+
+  socket.on("ice-candidate", ({ target, candidate }) => {
+    io.to(target).emit("ice-candidate", {
+      sender: socket.id,
+      candidate,
+    });
   });
 
   socket.on("disconnect", () => {
-    console.log("user disconnected with socket id: " + socket.id);
+    socket.broadcast.emit("user-left", socket.id);
   });
 });
 
