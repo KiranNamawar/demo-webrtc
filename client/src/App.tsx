@@ -20,7 +20,7 @@ function App() {
           <input
             id="room"
             type="text"
-            title="room"
+            name="room"
             className="border rounded p-2 mb-2"
           />
           <button
