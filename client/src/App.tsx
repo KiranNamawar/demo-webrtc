@@ -1,18 +1,21 @@
-import { useState } from "react";
-import WebRTCDemo from "./WebRTCDemo";
+import { useNavigate } from "react-router";
 
 function App() {
-  const [startVideo, setStartVideo] = useState(false);
-
+  const navigate = useNavigate();
   return (
     <div className="flex flex-col items-center">
-      <button
-        className="border p-2 rounded-md"
-        onClick={() => setStartVideo(!startVideo)}
+      <form
+        onSubmit={(evt) => {
+          const formData = new FormData(evt.target);
+          const room = formData.get("room") as string;
+          if (!room.trim()) return;
+          navigate(`/${room}`);
+        }}
       >
-        {startVideo ? "Stop Video" : "Start Video"}
-      </button>
-      {startVideo && <WebRTCDemo />}
+        <label htmlFor="room">Room Name</label>
+        <input id="room" type="text" title="room" />
+        <button type="submit">Join</button>
+      </form>
     </div>
   );
 }

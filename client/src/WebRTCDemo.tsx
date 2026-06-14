@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSocket } from "./socketContext";
 
-const ROOM_ID = "demo-room";
-
-export default function WebRTCDemo() {
+export default function WebRTCDemo({ room }: { room: string }) {
   const { socket, isConnected } = useSocket();
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -25,7 +23,10 @@ export default function WebRTCDemo() {
         urls: "stun:stun.l.google.com:19302",
       },
       {
-        urls: "turn:webrtc.justanotherdemo.site:3478",
+        urls: [
+          "turn:webrtc.justanotherdemo.site:3478?transport=udp",
+          "turn:webrtc.justanotherdemo.site:3478?transport=tcp",
+        ],
         username: "webrtc",
         credential: "secret",
       },
@@ -100,7 +101,7 @@ export default function WebRTCDemo() {
         localVideoRef.current.srcObject = stream;
       }
 
-      if (isConnected) socket.emit("join-room", ROOM_ID);
+      if (isConnected) socket.emit("join-room", room);
     }
 
     init();
